@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"github.com/shuza/go-kafka/model"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
@@ -9,9 +10,14 @@ import (
 )
 
 func main() {
+	host := flag.String("host", "localhost", "bootstrap server list")
+	consumerGroup := flag.String("group", "myGroup", "consumer group name")
+	topic := flag.String("topic", "test", "topic you want to consume")
+	flag.Parse()
+
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers": "localhost",
-		"group.id":          "myGroup",
+		"bootstrap.servers": *host,
+		"group.id":          *consumerGroup,
 		"auto.offset.reset": "earliest",
 	})
 
@@ -19,7 +25,7 @@ func main() {
 		panic(err)
 	}
 
-	consumer.SubscribeTopics([]string{"test", "^aRegex.*[Tt]opic"}, nil)
+	consumer.SubscribeTopics([]string{*topic, "^aRegex.*[Tt]opic"}, nil)
 	for {
 		msg, err := consumer.ReadMessage(-1)
 		if err != nil {

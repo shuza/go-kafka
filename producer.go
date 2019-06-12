@@ -42,7 +42,9 @@ func main() {
 
 func sendMessage(producer *kafka.Producer, topic string, payload []byte) {
 	err := producer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &topic,
+		TopicPartition: kafka.TopicPartition{
+			Topic: &topic,
+			Partition:kafka.PartitionAny,
 		},
 		Value: payload,
 	}, nil)
