@@ -18,13 +18,21 @@ func main() {
 
 	go deliveryReport(producer)
 
-	reader := bufio.NewReader(os.Stdin)
+	reader := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("Type your topic : ")
-		topic, _ := reader.ReadString('\n')
+		reader.Scan()
+		topic := reader.Text()
+
+		fmt.Print("Type message type : ")
+		reader.Scan()
+		eventType := reader.Text()
+
 		fmt.Print("Type your message : ")
-		message, _ := reader.ReadString('\n')
-		event := model.Event{topic, message, false}
+		reader.Scan()
+		message := reader.Text()
+
+		event := model.Event{eventType, message, false}
 
 		if data, err := event.ToByte(); err == nil {
 			sendMessage(producer, topic, data)
@@ -35,7 +43,6 @@ func main() {
 func sendMessage(producer *kafka.Producer, topic string, payload []byte) {
 	err := producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &topic,
-			Partition: kafka.PartitionAny,
 		},
 		Value: payload,
 	}, nil)
