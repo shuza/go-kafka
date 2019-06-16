@@ -5,6 +5,7 @@ import (
 	"github.com/shuza/go-kafka/sms/sms_db"
 	"github.com/shuza/go-kafka/sms/sms_model"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
 	"net/http"
 )
 
@@ -42,10 +43,39 @@ func AddNewSms(c *gin.Context) {
 		return
 	}
 
+	go sendDeliveryReport(event)
+
 	c.JSON(200, gin.H{
 		"status":  http.StatusOK,
 		"message": "Sms event processed successfully",
 	})
+}
+
+func sendDeliveryReport(event sms_model.SmsEvent) {
+	topic := "deliver-report-sms"
+	producer, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost"})
+	if err != nil {
+		log.Warnf("Can't connect to kafka to send deliver report  Error  :  %v\n", err)
+		return
+	}
+
+	data, _ := event.ToByte()
+
+	deliveryChan := make(chan kafka.Event)
+	err = producer.Produce(&kafka.Message{
+		TopicPartition: kafka.TopicPartition{
+			Topic:     &topic,
+			Partition: kafka.PartitionAny,
+		},
+		Value: data,
+	}, deliveryChan)
+	if err != nil {
+		log.Warnf("failed to send SMS deliver report  Error  :  %v\n", err)
+		return
+	}
+
+	report := <-deliveryChan
+	log.Infof("SMS event deliver report send  :  %v\n", report)
 }
 
 func AllSmsEvent(c *gin.Context) {
